@@ -45,7 +45,7 @@ export default function PaperCard({ paper, index }) {
   return (
     <div
       id={`paper-card-${index}`}
-      className="glass-card p-4 hover:border-aria-accent/30 transition-all duration-300 cursor-pointer group"
+      className="glass-card mb-3 break-inside-avoid p-4 hover:border-aria-accent/30 transition-all duration-300 cursor-pointer group"
       onClick={() => setExpanded(!expanded)}
     >
       {/* Header row */}

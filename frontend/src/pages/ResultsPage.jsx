@@ -128,7 +128,7 @@ export default function ResultsPage() {
           {activeTab === 'gaps' && <ResearchGapBrief />}
           {activeTab === 'graph' && <KnowledgeGraph />}
           {activeTab === 'papers' && (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-3">
               {papers.map((paper, i) => (
                 <PaperCard key={i} paper={paper} index={i} />
               ))}
