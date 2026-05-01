@@ -249,7 +249,14 @@ const useAriaStore = create((set, get) => ({
         body: JSON.stringify({ session_id: sessionId, question }),
       });
 
-      if (!res.ok) throw new Error('Query failed');
+      if (!res.ok) {
+        let errorDetail = 'Query failed';
+        try {
+          const errData = await res.json();
+          if (errData.detail) errorDetail = errData.detail;
+        } catch (e) {}
+        throw new Error(errorDetail);
+      }
 
       const data = await res.json();
       const assistantMsg = { role: 'assistant', content: data.answer };

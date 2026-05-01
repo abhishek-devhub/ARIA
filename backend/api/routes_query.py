@@ -21,7 +21,7 @@ async def query_papers(request: QueryRequest):
     """
     session = get_session(request.session_id)
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise HTTPException(status_code=404, detail="Session expired or not found. Please start a new research session.")
 
     if session["status"] not in ("completed", "running"):
         raise HTTPException(
