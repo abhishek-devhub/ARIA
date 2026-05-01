@@ -19,7 +19,6 @@ const saveSessionToHistory = (sessionData) => {
       summary: sessionData.summary,
       contradictions: sessionData.contradictions,
       gaps: sessionData.gaps,
-      roadmap: sessionData.roadmap,
       status: sessionData.status,
       progress: sessionData.progress
     };
@@ -76,7 +75,6 @@ const useAriaStore = create((set, get) => ({
   contradictions: '',
   gaps: null,
   graphData: null,
-  roadmap: null,
 
   // Chat
   chatMessages: [],
@@ -107,7 +105,6 @@ const useAriaStore = create((set, get) => ({
       contradictions: '',
       gaps: null,
       graphData: null,
-      roadmap: null,
       chatMessages: [],
       error: null,
     });
@@ -199,7 +196,6 @@ const useAriaStore = create((set, get) => ({
         contradictions: data.contradictions || '',
         gaps: parsedGaps,
         papers: data.papers || [],
-        roadmap: data.roadmap || null,
       });
 
       // Save session to history
@@ -211,7 +207,6 @@ const useAriaStore = create((set, get) => ({
         summary: data.summary || '',
         contradictions: data.contradictions || '',
         gaps: parsedGaps,
-        roadmap: data.roadmap || null,
         status: 'completed',
         progress: 100
       });
@@ -290,7 +285,6 @@ const useAriaStore = create((set, get) => ({
       summary: sessionData.summary,
       contradictions: sessionData.contradictions,
       gaps: sessionData.gaps,
-      roadmap: sessionData.roadmap,
       status: sessionData.status || 'completed',
       progress: sessionData.progress || 100,
       chatMessages: [],
@@ -320,7 +314,6 @@ const useAriaStore = create((set, get) => ({
     contradictions: '',
     gaps: null,
     graphData: null,
-    roadmap: null,
     chatMessages: [],
     chatLoading: false,
     activeTab: 'summary',

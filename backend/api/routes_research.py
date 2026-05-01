@@ -131,5 +131,4 @@ async def get_results(session_id: str):
         "contradictions": session.get("contradictions", ""),
         "gaps": gaps,
         "papers": session.get("papers", []),
-        "roadmap": session.get("roadmap"),
     }

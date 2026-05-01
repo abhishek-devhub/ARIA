@@ -5,13 +5,12 @@ import LiteratureSummary from '../components/LiteratureSummary';
 import ContradictionReport from '../components/ContradictionReport';
 import ResearchGapBrief from '../components/ResearchGapBrief';
 import KnowledgeGraph from '../components/KnowledgeGraph';
-import RoadmapView from '../components/RoadmapView';
 import PaperCard from '../components/PaperCard';
 import ChatInterface from '../components/ChatInterface';
+import { downloadMarkdown } from '../utils/exportUtils';
 
 const TABS = [
   { id: 'summary', label: 'Summary', icon: '📄' },
-  { id: 'roadmap', label: 'Roadmap', icon: '🗺️' },
   { id: 'contradictions', label: 'Contradictions', icon: '⚠️' },
   { id: 'gaps', label: 'Research Gaps', icon: '🔍' },
   { id: 'graph', label: 'Knowledge Graph', icon: '🕸️' },
@@ -57,9 +56,18 @@ export default function ResultsPage() {
               </span>
             )}
             {status === 'completed' && (
-              <span className="text-xs text-aria-green">
-                ✓ {papers.length} papers analyzed
-              </span>
+              <>
+                <span className="text-xs text-aria-green">
+                  ✓ {papers.length} papers analyzed
+                </span>
+                <button
+                  onClick={() => downloadMarkdown(useAriaStore.getState())}
+                  className="text-xs px-3 py-1.5 rounded-md bg-aria-card border border-aria-border hover:bg-aria-border transition-colors flex items-center gap-1.5"
+                >
+                  <span className="text-sm">📥</span>
+                  Export Report
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -123,7 +131,6 @@ export default function ResultsPage() {
       {(status === 'completed' || papers.length > 0) && (
         <div className="max-w-7xl mx-auto px-4 mt-4">
           {activeTab === 'summary' && <LiteratureSummary />}
-          {activeTab === 'roadmap' && <RoadmapView />}
           {activeTab === 'contradictions' && <ContradictionReport />}
           {activeTab === 'gaps' && <ResearchGapBrief />}
           {activeTab === 'graph' && <KnowledgeGraph />}

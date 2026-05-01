@@ -8,7 +8,6 @@ const ICONS = {
   scoring: '📊',
   graph_building: '🕸️',
   synthesizing: '✍️',
-  roadmap: '🗺️',
   indexing: '📂',
   started: '🚀',
   completed: '🎉',

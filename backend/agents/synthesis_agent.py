@@ -12,30 +12,36 @@ logger = logging.getLogger(__name__)
 _executor = ThreadPoolExecutor(max_workers=2)
 
 
-def generate_literature_summary(papers: list[dict]) -> str:
-    """Generate a themed literature summary grouped by topic.
+def generate_literature_summary(question: str, papers: list[dict]) -> str:
+    """Generate a themed literature summary grouped by topic, focused on the question.
 
     Args:
+        question: The user's original research question.
         papers: List of enriched paper dicts.
 
     Returns:
         Markdown-formatted literature summary.
     """
-    logger.info(f"Generating literature summary from {len(papers)} papers")
+    logger.info(f"Generating literature summary from {len(papers)} papers for question: '{question[:50]}'")
 
     abstracts = "\n\n".join([
         f"[{i+1}] {p.get('title', 'Untitled')} ({p.get('year', '?')}): {p.get('abstract', '')[:500]}"
         for i, p in enumerate(papers[:30])
     ])
 
-    prompt = f"""You are a research synthesis expert. Given these papers, write a structured literature summary.
+    prompt = f"""You are a research synthesis expert. Your goal is to answer the following research question based on the provided papers:
 
+Research Question: "{question}"
+
+CRITICAL INSTRUCTION: Some papers provided below may be completely irrelevant (e.g. from medical databases matching a keyword but having a different context). STRICTLY IGNORE any papers that do not directly align with the core context of the research question.
+
+Write a structured literature summary that directly addresses this question using ONLY the relevant papers.
 Group findings by theme. For each theme:
 1. Write a clear theme heading (## Theme Name)
-2. Write 2-3 paragraphs synthesizing findings
+2. Write 2-3 paragraphs synthesizing findings as they relate to the research question
 3. Cite papers as [1], [2] etc.
 
-At the end, include a "## Key Takeaways" section with 3-5 bullet points.
+At the end, include a "## Key Takeaways" section with 3-5 bullet points directly answering the research question.
 
 Papers:
 {abstracts}
@@ -153,6 +159,7 @@ Return JSON:
 
 
 async def generate_all_outputs(
+    question: str,
     papers: list[dict],
     contradictions: list[dict],
     status_callback=None,
@@ -162,6 +169,7 @@ async def generate_all_outputs(
     Summary runs first (largest prompt), then contradictions + gaps run in parallel.
 
     Args:
+        question: The user's research question.
         papers: Enriched paper dicts.
         contradictions: Contradiction list from graph agent.
         status_callback: Async SSE callback.
@@ -177,7 +185,7 @@ async def generate_all_outputs(
 
     # Step 1: Summary first (heaviest prompt)
     await emit("synthesizing", "✍️ Generating literature summary...", 87)
-    summary = await loop.run_in_executor(_executor, generate_literature_summary, papers)
+    summary = await loop.run_in_executor(_executor, generate_literature_summary, question, papers)
 
     # Step 2: Contradictions + Gaps in parallel
     await emit("synthesizing", "✍️ Generating contradiction report + research gaps (parallel)...", 92)
