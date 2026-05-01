@@ -8,6 +8,7 @@ import KnowledgeGraph from '../components/KnowledgeGraph';
 import PaperCard from '../components/PaperCard';
 import ChatInterface from '../components/ChatInterface';
 import { downloadMarkdown } from '../utils/exportUtils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const TABS = [
   { id: 'summary', label: 'Summary', icon: '📄' },
@@ -130,17 +131,27 @@ export default function ResultsPage() {
       {/* Tab content */}
       {(status === 'completed' || papers.length > 0) && (
         <div className="max-w-7xl mx-auto px-4 mt-4">
-          {activeTab === 'summary' && <LiteratureSummary />}
-          {activeTab === 'contradictions' && <ContradictionReport />}
-          {activeTab === 'gaps' && <ResearchGapBrief />}
-          {activeTab === 'graph' && <KnowledgeGraph />}
-          {activeTab === 'papers' && (
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-3">
-              {papers.map((paper, i) => (
-                <PaperCard key={i} paper={paper} index={i} />
-              ))}
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {activeTab === 'summary' && <LiteratureSummary />}
+              {activeTab === 'contradictions' && <ContradictionReport />}
+              {activeTab === 'gaps' && <ResearchGapBrief />}
+              {activeTab === 'graph' && <KnowledgeGraph />}
+              {activeTab === 'papers' && (
+                <div className="columns-1 sm:columns-2 lg:columns-3 gap-3">
+                  {papers.map((paper, i) => (
+                    <PaperCard key={i} paper={paper} index={i} />
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       )}
 

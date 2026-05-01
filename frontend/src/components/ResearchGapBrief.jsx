@@ -28,7 +28,7 @@ export default function ResearchGapBrief() {
   };
 
   return (
-    <div className="glass-card overflow-hidden animate-fade-in">
+    <div className="glass-card overflow-hidden">
       <div className="px-4 py-3 border-b border-aria-border flex items-center gap-2">
         <span>🔍</span>
         <h3 className="text-sm font-semibold text-aria-text">Research Gap Brief</h3>

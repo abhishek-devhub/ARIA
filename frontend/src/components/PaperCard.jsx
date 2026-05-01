@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import useAriaStore from '../store/useAriaStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function PaperCard({ paper, index }) {
   const [expanded, setExpanded] = useState(false);
@@ -43,7 +44,11 @@ export default function PaperCard({ paper, index }) {
   };
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
       id={`paper-card-${index}`}
       className="glass-card mb-3 break-inside-avoid p-4 hover:border-aria-accent/30 transition-all duration-300 cursor-pointer group"
       onClick={() => setExpanded(!expanded)}
@@ -85,8 +90,16 @@ export default function PaperCard({ paper, index }) {
       )}
 
       {/* Expanded content */}
-      {expanded && (
-        <div className="mt-3 pt-3 border-t border-aria-border space-y-3 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mt-3 pt-3 border-t border-aria-border space-y-3 overflow-hidden" 
+            onClick={(e) => e.stopPropagation()}
+          >
           {/* Abstract */}
           {paper.abstract && (
             <div>
@@ -185,8 +198,9 @@ export default function PaperCard({ paper, index }) {
               View paper ↗
             </a>
           )}
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

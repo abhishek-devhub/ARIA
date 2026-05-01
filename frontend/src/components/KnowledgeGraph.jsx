@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import useAriaStore from '../store/useAriaStore';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function KnowledgeGraph() {
   const graphData = useAriaStore((s) => s.graphData);
@@ -120,34 +121,42 @@ export default function KnowledgeGraph() {
       </div>
 
       {/* Selected node detail */}
-      {selectedNode && (
-        <div className="border-t border-aria-border px-4 py-3 animate-slide-up">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-aria-text">{selectedNode.title}</h4>
-              <p className="text-xs text-aria-text-muted mt-1">
-                {selectedNode.year && `${selectedNode.year} · `}
-                {selectedNode.domain || 'Unknown domain'}
-                {selectedNode.citation_count > 0 && ` · ${selectedNode.citation_count} citations`}
-              </p>
-              {selectedNode.claims && selectedNode.claims.length > 0 && (
-                <div className="mt-2">
-                  <p className="text-[10px] uppercase tracking-wider text-aria-text-muted mb-1">Claims</p>
-                  {selectedNode.claims.slice(0, 2).map((c, i) => (
-                    <p key={i} className="text-xs text-aria-text-dim">• {c}</p>
-                  ))}
-                </div>
-              )}
+      <AnimatePresence>
+        {selectedNode && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
+            className="border-t border-aria-border px-4 py-3"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-semibold text-aria-text">{selectedNode.title}</h4>
+                <p className="text-xs text-aria-text-muted mt-1">
+                  {selectedNode.year && `${selectedNode.year} · `}
+                  {selectedNode.domain || 'Unknown domain'}
+                  {selectedNode.citation_count > 0 && ` · ${selectedNode.citation_count} citations`}
+                </p>
+                {selectedNode.claims && selectedNode.claims.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-[10px] uppercase tracking-wider text-aria-text-muted mb-1">Claims</p>
+                    {selectedNode.claims.slice(0, 2).map((c, i) => (
+                      <p key={i} className="text-xs text-aria-text-dim">• {c}</p>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="text-aria-text-muted hover:text-aria-text text-xs ml-2"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="text-aria-text-muted hover:text-aria-text text-xs ml-2"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Stats bar - fixed positioning */}
       <div className="sticky bottom-0 flex items-center justify-between gap-4 px-4 py-3 border-t border-aria-border bg-aria-bg/95 backdrop-blur-sm">
