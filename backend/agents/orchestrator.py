@@ -11,7 +11,6 @@ from agents.extractor_agent import extract_all_papers
 from agents.graph_agent import build_knowledge_graph
 from agents.synthesis_agent import generate_all_outputs
 from agents.confidence_agent import score_claims
-from agents.roadmap_agent import generate_roadmap
 from vector.chroma_store import store_papers
 from graph.knowledge_graph import get_graph
 
@@ -38,7 +37,6 @@ def create_session(question: str) -> str:
         "summary": "",
         "contradictions": "",
         "gaps": "",
-        "roadmap": None,
         "error": None,
     }
     _status_queues[session_id] = asyncio.Queue()
@@ -68,8 +66,9 @@ def _filter_relevant_papers(papers: list[dict], query: str) -> tuple[list[dict],
     scored.sort(key=lambda x: x[0], reverse=True)
 
     relevant = [p for s, p in scored if s >= 0.35]
-    if len(relevant) < 5:
-        relevant = [p for _, p in scored[:5]]
+    if len(relevant) < 3:
+        # Fallback to slightly lower threshold, but never include completely irrelevant papers
+        relevant = [p for s, p in scored if s >= 0.20][:5]
 
     all_papers = [p for _, p in scored]
 
@@ -161,20 +160,16 @@ async def run_research_pipeline(
 
         # === STAGE 7: SYNTHESIZE ===
         outputs = await generate_all_outputs(
+            question=question,
             papers=relevant_papers,
             contradictions=graph_result.get("contradictions", []),
             status_callback=status_callback,
         )
 
-        # === STAGE 8: ROADMAP ===
-        await status_callback("roadmap", "🗺️ Generating research roadmap...", 96)
-        roadmap = await loop.run_in_executor(None, generate_roadmap, relevant_papers)
-
         # Store results
         session["summary"] = outputs["summary"]
         session["contradictions"] = outputs["contradictions"]
         session["gaps"] = outputs["gaps"]
-        session["roadmap"] = roadmap
         session["status"] = "completed"
         session["papers"] = [
             {k: v for k, v in p.items() if k != "embedding"}
@@ -183,7 +178,7 @@ async def run_research_pipeline(
 
         await status_callback(
             "completed",
-            f"🎉 Done! {len(relevant_papers)} relevant papers analyzed, roadmap generated.",
+            f"🎉 Done! {len(relevant_papers)} relevant papers analyzed.",
             100,
         )
         logger.info(f"Session {session_id} completed: {len(relevant_papers)} papers")
