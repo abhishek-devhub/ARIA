@@ -1,5 +1,3 @@
-"""Graph agent — builds knowledge graph and detects contradictions (optimized)."""
-
 import json
 import logging
 from itertools import combinations
@@ -16,19 +14,6 @@ async def build_knowledge_graph(
     papers: list[dict],
     status_callback=None,
 ) -> dict:
-    """Build the knowledge graph from extracted papers.
-
-    Optimized: batch-embeds all claims upfront, then uses cosine similarity
-    to find support/contradiction/related edges without per-pair API calls.
-
-    Args:
-        session_id: Research session ID.
-        papers: List of enriched paper dicts.
-        status_callback: Async SSE callback.
-
-    Returns:
-        Dict with contradictions list and graph stats.
-    """
     async def emit(event: str, detail: str, progress: int):
         if status_callback:
             await status_callback(event, detail, progress)
@@ -36,7 +21,6 @@ async def build_knowledge_graph(
     kg = get_graph(session_id)
     await emit("graph_building", "🕸️ Building knowledge graph...", 73)
 
-    # Step 1: Add all papers as nodes
     node_ids = {}
     for paper in papers:
         node_id = kg.add_paper(paper)
@@ -45,8 +29,6 @@ async def build_knowledge_graph(
             node_ids[pid] = node_id
 
     await emit("graph_building", f"🕸️ Added {len(node_ids)} nodes to graph", 75)
-
-    # Step 2: Batch-embed all paper claims ONCE (instead of per-pair)
     await emit("graph_building", "🕸️ Computing claim embeddings...", 76)
 
     claim_texts = []
@@ -58,25 +40,20 @@ async def build_knowledge_graph(
             pid = paper.get("paper_id") or paper.get("arxiv_id") or paper.get("title", "")[:60]
             paper_keys.append(pid)
 
-    # Single batch embedding call
     if claim_texts:
         all_embeddings = embed_texts(claim_texts)
     else:
         all_embeddings = []
 
-    # Build embedding lookup
     embedding_map = {}
     for key, emb in zip(paper_keys, all_embeddings):
         embedding_map[key] = emb
 
     await emit("graph_building", f"🕸️ Embedded {len(embedding_map)} paper claims", 78)
 
-    # Step 3: Detect relationships using pre-computed embeddings
     contradictions = []
     paper_pairs = list(combinations(papers, 2))
     max_pairs = min(len(paper_pairs), 50)
-
-    # Track pairs that might contradict (for targeted LLM checks)
     potential_contradictions = []
 
     for pa, pb in paper_pairs[:max_pairs]:
@@ -92,7 +69,6 @@ async def build_knowledge_graph(
         emb_b = embedding_map.get(pid_b)
 
         if not emb_a or not emb_b:
-            # No claims, check domain match
             domain_a = pa.get("domain", "")
             domain_b = pb.get("domain", "")
             if domain_a and domain_b and domain_a.lower() == domain_b.lower():
@@ -102,13 +78,10 @@ async def build_knowledge_graph(
         sim = cosine_similarity(emb_a, emb_b)
 
         if sim > 0.7:
-            # High similarity = support
             kg.add_support_edge(nid_a, nid_b, reason="High claim similarity")
         elif 0.3 <= sim <= 0.7:
-            # Medium similarity = potential contradiction, queue for LLM check
             potential_contradictions.append((pa, pb, nid_a, nid_b, sim))
         else:
-            # Low similarity, check domain
             domain_a = pa.get("domain", "")
             domain_b = pb.get("domain", "")
             if domain_a and domain_b and domain_a.lower() == domain_b.lower():
@@ -120,7 +93,6 @@ async def build_knowledge_graph(
         80,
     )
 
-    # Step 4: Only use LLM for top 5 potential contradictions (capped for speed)
     llm_checks = potential_contradictions[:5]
     for i, (pa, pb, nid_a, nid_b, sim) in enumerate(llm_checks):
         claims_a = " ".join(pa.get("core_claims", []))[:500]

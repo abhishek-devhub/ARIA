@@ -1,5 +1,3 @@
-"""Semantic Scholar search tool — free tier, no API key needed for basic search."""
-
 import httpx
 import time
 import logging
@@ -10,17 +8,6 @@ BASE = "https://api.semanticscholar.org/graph/v1"
 
 
 def search_semantic_scholar(query: str, max_results: int = 20) -> list[dict]:
-    """Search Semantic Scholar for papers matching the query.
-
-    Uses the public endpoint (no API key) — rate limited to ~100 req / 5 min.
-
-    Args:
-        query: Search query string.
-        max_results: Maximum papers to return.
-
-    Returns:
-        List of paper dicts with title, abstract, authors, year, etc.
-    """
     logger.info(f"Searching Semantic Scholar for: '{query}' (max {max_results})")
     params = {
         "query": query,
@@ -53,7 +40,7 @@ def search_semantic_scholar(query: str, max_results: int = 20) -> list[dict]:
                     "url": p.get("url", ""),
                     "source": "semantic_scholar",
                 })
-            break  # Success, stop retrying
+            break
         except httpx.HTTPStatusError as e:
             logger.error(f"Semantic Scholar HTTP error: {e}")
             break
@@ -66,14 +53,6 @@ def search_semantic_scholar(query: str, max_results: int = 20) -> list[dict]:
 
 
 def get_citations(paper_id: str) -> list[dict]:
-    """Get references (citation trail) for a given paper — no key needed.
-
-    Args:
-        paper_id: Semantic Scholar paper ID.
-
-    Returns:
-        List of referenced paper dicts (up to 10).
-    """
     logger.info(f"Fetching citations for paper: {paper_id}")
     try:
         resp = httpx.get(

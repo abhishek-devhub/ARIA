@@ -1,5 +1,3 @@
-"""Orchestrator — coordinates all agents for a complete research pipeline."""
-
 import asyncio
 import json
 import logging
@@ -16,18 +14,15 @@ from graph.knowledge_graph import get_graph
 
 logger = logging.getLogger(__name__)
 
-# Global session state
 _sessions: dict[str, dict] = {}
 _status_queues: dict[str, asyncio.Queue] = {}
 
 
 def get_session(session_id: str) -> Optional[dict]:
-    """Get a session's state."""
     return _sessions.get(session_id)
 
 
 def create_session(question: str) -> str:
-    """Create a new research session."""
     session_id = str(uuid.uuid4())
     _sessions[session_id] = {
         "session_id": session_id,
@@ -45,12 +40,10 @@ def create_session(question: str) -> str:
 
 
 def get_status_queue(session_id: str) -> Optional[asyncio.Queue]:
-    """Get the SSE status queue for a session."""
     return _status_queues.get(session_id)
 
 
 def _filter_relevant_papers(papers: list[dict], query: str) -> tuple[list[dict], list[dict]]:
-    """Fast relevance filter using batch embeddings. No LLM calls."""
     from embeddings_client import embed_text, embed_texts, cosine_similarity
 
     query_emb = embed_text(query)
@@ -67,7 +60,6 @@ def _filter_relevant_papers(papers: list[dict], query: str) -> tuple[list[dict],
 
     relevant = [p for s, p in scored if s >= 0.35]
     if len(relevant) < 3:
-        # Fallback to slightly lower threshold, but never include completely irrelevant papers
         relevant = [p for s, p in scored if s >= 0.20][:5]
 
     all_papers = [p for _, p in scored]
@@ -81,11 +73,6 @@ async def run_research_pipeline(
     max_papers: int = 30,
     depth: int = 2,
 ):
-    """Run the full ARIA research pipeline.
-
-    Stages: Crawl → Filter → Extract (fast model) → Index → Graph →
-            Confidence Score → Synthesize → Roadmap
-    """
     session = _sessions.get(session_id)
     if not session:
         logger.error(f"Session {session_id} not found")
@@ -102,7 +89,6 @@ async def run_research_pipeline(
     try:
         question = session["question"]
 
-        # === STAGE 1: CRAWL ===
         await status_callback("started", f"🚀 Starting research on: {question[:80]}", 1)
         papers = await crawl_papers(
             query=question, max_papers=max_papers, depth=depth,
@@ -111,12 +97,10 @@ async def run_research_pipeline(
         if not papers:
             raise Exception("No papers found. Try a different search term.")
 
-        # === STAGE 1.5: ENRICH WITH PDF TEXT ===
         await status_callback("crawling", "📄 Downloading PDF text from arXiv papers...", 52)
         from tools.pdf_extractor import enrich_papers_with_pdf
         papers = await loop.run_in_executor(None, enrich_papers_with_pdf, papers)
 
-        # === STAGE 2: RELEVANCE FILTER ===
         await status_callback("filtering", "🎯 Filtering for relevant papers...", 54)
         relevant_papers, all_papers_scored = _filter_relevant_papers(papers, question)
         await status_callback(
@@ -126,12 +110,10 @@ async def run_research_pipeline(
         )
         session["papers"] = all_papers_scored
 
-        # === STAGE 3: EXTRACT (fast model) ===
         relevant_papers = await extract_all_papers(
             papers=relevant_papers, status_callback=status_callback,
         )
 
-        # Merge enriched relevant + unenriched others
         relevant_ids = {p.get("title", "")[:60] for p in relevant_papers}
         final_papers = list(relevant_papers)
         for p in all_papers_scored:
@@ -139,26 +121,21 @@ async def run_research_pipeline(
                 final_papers.append(p)
         session["papers"] = final_papers
 
-        # === STAGE 4: CONFIDENCE SCORING ===
         await status_callback("scoring", "📊 Scoring claim confidence...", 72)
         relevant_papers = score_claims(relevant_papers)
-        # Update the final papers with scored claims
         scored_map = {p.get("title", ""): p.get("scored_claims", []) for p in relevant_papers}
         for p in final_papers:
             if p.get("title", "") in scored_map:
                 p["scored_claims"] = scored_map[p["title"]]
 
-        # === STAGE 5: INDEX ===
         await status_callback("indexing", "📂 Indexing in vector database...", 74)
         store_papers(session_id, relevant_papers)
 
-        # === STAGE 6: BUILD GRAPH ===
         graph_result = await build_knowledge_graph(
             session_id=session_id, papers=relevant_papers,
             status_callback=status_callback,
         )
 
-        # === STAGE 7: SYNTHESIZE ===
         outputs = await generate_all_outputs(
             question=question,
             papers=relevant_papers,
@@ -166,7 +143,6 @@ async def run_research_pipeline(
             status_callback=status_callback,
         )
 
-        # Store results
         session["summary"] = outputs["summary"]
         session["contradictions"] = outputs["contradictions"]
         session["gaps"] = outputs["gaps"]

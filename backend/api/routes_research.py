@@ -1,5 +1,3 @@
-"""Research API routes — start research sessions and stream status via SSE."""
-
 import asyncio
 import json
 import logging
@@ -25,16 +23,10 @@ async def start_research(
     request: PaperSearchRequest,
     background_tasks: BackgroundTasks,
 ):
-    """Start a new ARIA research session.
-
-    Creates a session, kicks off the pipeline in the background,
-    and returns the session ID immediately.
-    """
     logger.info(f"New research request: '{request.question[:60]}', max_papers={request.max_papers}, depth={request.depth}")
 
     session_id = create_session(request.question)
 
-    # Run the pipeline in the background
     background_tasks.add_task(
         run_research_pipeline,
         session_id=session_id,
@@ -47,11 +39,6 @@ async def start_research(
 
 @router.get("/status/{session_id}")
 async def stream_status(session_id: str):
-    """Stream real-time status updates via Server-Sent Events (SSE).
-
-    The client should connect to this endpoint using EventSource.
-    Events are streamed as they happen during the research pipeline.
-    """
     session = get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -66,12 +53,10 @@ async def stream_status(session_id: str):
                 try:
                     event = await asyncio.wait_for(queue.get(), timeout=300)
                 except asyncio.TimeoutError:
-                    # Send keepalive
                     yield f"data: {json.dumps({'event': 'keepalive', 'detail': '', 'progress': -1})}\n\n"
                     continue
 
                 if event is None:
-                    # Pipeline finished
                     yield f"data: {json.dumps({'event': 'done', 'detail': 'Stream closed', 'progress': 100})}\n\n"
                     break
 
@@ -95,10 +80,6 @@ async def stream_status(session_id: str):
 
 @router.get("/results/{session_id}")
 async def get_results(session_id: str):
-    """Get the complete results of a research session.
-
-    Returns summary, contradictions, gaps, and papers once the pipeline is done.
-    """
     session = get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -115,7 +96,6 @@ async def get_results(session_id: str):
             detail=f"Research failed: {session.get('error', 'Unknown error')}",
         )
 
-    # Parse gaps JSON if it's a string
     gaps = session.get("gaps", "")
     if isinstance(gaps, str):
         try:

@@ -1,5 +1,3 @@
-"""Explain API — re-explain any text at different complexity levels."""
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 from llm_client import call_gemini
@@ -12,7 +10,7 @@ router = APIRouter(prefix="/api", tags=["explain"])
 
 class ExplainRequest(BaseModel):
     text: str
-    level: str = "undergrad"  # "phd" | "undergrad" | "highschool" | "child"
+    level: str = "undergrad"
 
 
 LEVEL_INSTRUCTIONS = {
@@ -25,7 +23,6 @@ LEVEL_INSTRUCTIONS = {
 
 @router.post("/explain")
 async def explain_text(req: ExplainRequest):
-    """Re-explain any text at the chosen complexity level."""
     instruction = LEVEL_INSTRUCTIONS.get(req.level, LEVEL_INSTRUCTIONS["undergrad"])
 
     prompt = f"""{instruction}

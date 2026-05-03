@@ -91,7 +91,6 @@ export default function HomePage() {
             Ollama Local LLM
           </span>
           <span>arXiv · Semantic Scholar · PubMed</span>
-          <span>100% Free Stack</span>
         </div>
       </div>
     </div>

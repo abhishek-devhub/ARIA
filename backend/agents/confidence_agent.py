@@ -1,5 +1,3 @@
-"""Confidence agent — scores each claim by how many other papers corroborate it."""
-
 import logging
 from embeddings_client import embed_texts, cosine_similarity
 
@@ -7,15 +5,6 @@ logger = logging.getLogger(__name__)
 
 
 def score_claims(papers: list[dict]) -> list[dict]:
-    """Score every claim's confidence based on cross-paper corroboration.
-
-    For each paper's core_claims, check how many OTHER papers make a similar claim.
-    More corroboration = higher confidence.
-    Score: 0.0 (lone wolf) → 1.0 (universally supported, 5+ papers agree).
-
-    Uses batch embeddings for speed.
-    """
-    # Build flat list of all claims
     all_claims = []
     for p in papers:
         for claim in p.get("core_claims", []):
@@ -30,11 +19,9 @@ def score_claims(papers: list[dict]) -> list[dict]:
         logger.info("No claims to score")
         return papers
 
-    # Batch-embed all claims at once
     claim_texts = [c["claim"][:300] for c in all_claims]
     embeddings = embed_texts(claim_texts)
 
-    # Score each claim against all others using the embeddings list directly
     for i, claim_obj in enumerate(all_claims):
         support_count = 0
         supporting_papers = []
@@ -54,7 +41,6 @@ def score_claims(papers: list[dict]) -> list[dict]:
         claim_obj["support_count"] = support_count
         claim_obj["supported_by"] = supporting_papers[:3]
 
-    # Attach scored claims back to papers
     for p in papers:
         p["scored_claims"] = [
             c for c in all_claims if c["paper_title"] == p.get("title", "")

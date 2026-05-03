@@ -1,5 +1,3 @@
-"""Synthesis agent — generates literature summary, contradiction report, and research gaps."""
-
 import asyncio
 import json
 import logging
@@ -13,15 +11,6 @@ _executor = ThreadPoolExecutor(max_workers=2)
 
 
 def generate_literature_summary(question: str, papers: list[dict]) -> str:
-    """Generate a themed literature summary grouped by topic, focused on the question.
-
-    Args:
-        question: The user's original research question.
-        papers: List of enriched paper dicts.
-
-    Returns:
-        Markdown-formatted literature summary.
-    """
     logger.info(f"Generating literature summary from {len(papers)} papers for question: '{question[:50]}'")
 
     abstracts = "\n\n".join([
@@ -61,14 +50,6 @@ Write the Literature Summary in markdown:"""
 
 
 def generate_contradiction_report(contradictions: list[dict]) -> str:
-    """Generate a detailed contradiction report.
-
-    Args:
-        contradictions: List of contradiction dicts with paper_a, paper_b, reason.
-
-    Returns:
-        Markdown-formatted contradiction report.
-    """
     logger.info(f"Generating contradiction report from {len(contradictions)} contradictions")
 
     if not contradictions:
@@ -106,14 +87,6 @@ Write the Contradiction Report:"""
 
 
 def generate_research_gaps(papers: list[dict]) -> str:
-    """Identify research gaps and unanswered questions.
-
-    Args:
-        papers: List of enriched paper dicts.
-
-    Returns:
-        JSON string with ranked research gaps.
-    """
     logger.info(f"Identifying research gaps from {len(papers)} papers")
 
     all_limitations = []
@@ -146,7 +119,6 @@ Return JSON:
 
     try:
         result = call_gemini(prompt, json_mode=True)
-        # Validate it's valid JSON
         parsed = json.loads(result)
         logger.info(f"Research gaps identified: {len(parsed.get('gaps', []))} gaps")
         return result
@@ -164,30 +136,15 @@ async def generate_all_outputs(
     contradictions: list[dict],
     status_callback=None,
 ) -> dict:
-    """Generate all three synthesis outputs with parallelism.
-
-    Summary runs first (largest prompt), then contradictions + gaps run in parallel.
-
-    Args:
-        question: The user's research question.
-        papers: Enriched paper dicts.
-        contradictions: Contradiction list from graph agent.
-        status_callback: Async SSE callback.
-
-    Returns:
-        Dict with 'summary', 'contradictions', 'gaps' keys.
-    """
     loop = asyncio.get_event_loop()
 
     async def emit(event: str, detail: str, progress: int):
         if status_callback:
             await status_callback(event, detail, progress)
 
-    # Step 1: Summary first (heaviest prompt)
     await emit("synthesizing", "✍️ Generating literature summary...", 87)
     summary = await loop.run_in_executor(_executor, generate_literature_summary, question, papers)
 
-    # Step 2: Contradictions + Gaps in parallel
     await emit("synthesizing", "✍️ Generating contradiction report + research gaps (parallel)...", 92)
     contradiction_future = loop.run_in_executor(
         _executor, generate_contradiction_report, contradictions

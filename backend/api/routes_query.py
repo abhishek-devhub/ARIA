@@ -1,5 +1,3 @@
-"""Query API routes — conversational Q&A over research results."""
-
 import logging
 
 from fastapi import APIRouter, HTTPException
@@ -15,10 +13,6 @@ router = APIRouter(prefix="/api", tags=["query"])
 
 @router.post("/query")
 async def query_papers(request: QueryRequest):
-    """Ask a follow-up question about the research results.
-
-    Uses ChromaDB retrieval + conversation history + Gemini to answer.
-    """
     session = get_session(request.session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session expired or not found. Please start a new research session.")
@@ -43,7 +37,6 @@ async def query_papers(request: QueryRequest):
 
 @router.get("/history/{session_id}")
 async def get_chat_history(session_id: str):
-    """Get the conversation history for a session."""
     session = get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")

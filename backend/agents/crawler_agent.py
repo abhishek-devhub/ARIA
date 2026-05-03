@@ -1,5 +1,3 @@
-"""Crawler agent — searches arXiv, Semantic Scholar, PubMed in parallel and follows citation trails."""
-
 import asyncio
 import logging
 import time
@@ -10,12 +8,10 @@ from tools.pubmed_tool import search_pubmed
 
 logger = logging.getLogger(__name__)
 
-# Shared executor for blocking I/O calls
 _executor = ThreadPoolExecutor(max_workers=4)
 
 
 def deduplicate_papers(papers: list[dict]) -> list[dict]:
-    """Remove duplicate papers based on title similarity."""
     seen_titles = set()
     unique = []
     for p in papers:
@@ -32,26 +28,14 @@ async def crawl_papers(
     depth: int = 2,
     status_callback=None,
 ) -> list[dict]:
-    """Crawl papers from multiple sources IN PARALLEL and follow citation trails.
-
-    Args:
-        query: Research question or topic.
-        max_papers: Maximum total papers to collect.
-        depth: How many levels of citation trails to follow (0-3).
-        status_callback: Async function(event, detail, progress) for SSE updates.
-
-    Returns:
-        Deduplicated list of paper dicts.
-    """
     async def emit(event: str, detail: str, progress: int):
         if status_callback:
             await status_callback(event, detail, progress)
 
     all_papers = []
-    per_source = 5  # Keep small: fewer, more relevant papers = better synthesis
+    per_source = 5
     loop = asyncio.get_event_loop()
 
-    # --- PARALLEL: All 3 sources at once ---
     await emit("crawling", f"🔍 Searching arXiv + Semantic Scholar + PubMed in parallel...", 5)
 
     async def fetch_arxiv():
@@ -81,7 +65,6 @@ async def crawl_papers(
             logger.error(f"PubMed crawl failed: {e}")
             return []
 
-    # Run all 3 concurrently
     arxiv_papers, ss_papers, pubmed_papers = await asyncio.gather(
         fetch_arxiv(),
         fetch_semantic_scholar(),
@@ -98,11 +81,9 @@ async def crawl_papers(
         38,
     )
 
-    # Deduplicate before following citations
     all_papers = deduplicate_papers(all_papers)
     await emit("crawling", f"📚 {len(all_papers)} unique papers after deduplication", 40)
 
-    # --- Citation trails ---
     if depth > 0:
         await emit("crawling", f"🔗 Following citation trails (depth={depth})...", 42)
         citation_papers = []
@@ -123,7 +104,6 @@ async def crawl_papers(
             except Exception as e:
                 logger.error(f"Citation trail error for {paper_id}: {e}")
 
-        # Depth 2: follow citations of citations
         if depth >= 2 and citation_papers:
             await emit("crawling", "🔗 Following citation trails (depth 2)...", 53)
             depth2_ids = [
@@ -142,7 +122,6 @@ async def crawl_papers(
 
         all_papers.extend(citation_papers)
 
-    # Final dedup and trim
     all_papers = deduplicate_papers(all_papers)[:max_papers]
     await emit("crawling", f"✅ Crawling complete: {len(all_papers)} unique papers collected", 55)
     logger.info(f"Crawl complete: {len(all_papers)} unique papers")

@@ -1,5 +1,3 @@
-"""Extractor agent — uses FAST LLM (gemma3:1b) for structured paper extraction."""
-
 import asyncio
 import json
 import logging
@@ -29,7 +27,6 @@ Return ONLY this JSON:
 
 
 def extract_paper(paper: dict) -> dict:
-    """Extract one paper using the FAST model (gemma3:1b)."""
     title = paper.get("title", "")
     abstract = paper.get("abstract", "")
 
@@ -73,10 +70,6 @@ async def extract_all_papers(
     papers: list[dict],
     status_callback=None,
 ) -> list[dict]:
-    """Extract papers in parallel batches using the FAST model.
-
-    Uses ThreadPoolExecutor with 3 workers for ~3x speedup.
-    """
     async def emit(event: str, detail: str, progress: int):
         if status_callback:
             await status_callback(event, detail, progress)
